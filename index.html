@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calendário de Eventos Empresariais</title>
+    <!-- Carregamento do Tailwind CSS para estilização moderna e responsiva --><script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Definindo a fonte Inter para todo o corpo e aplicando o fundo escuro */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a; /* Cor de fundo muito escura (slate-900) */
+            color: #e5e7eb; /* Cor do texto claro */
+        }
+        /* Estilização específica para as células do calendário no tema escuro */
+        .calendar-day {
+            min-height: 120px;
+            padding: 8px;
+            transition: all 0.2s;
+            cursor: default;
+            background-color: #1f2937; /* Fundo escuro para as células (gray-800) */
+            border: 1px solid #374151; /* Borda sutil */
+        }
+        .calendar-day:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            background-color: #111827; /* Fundo um pouco mais escuro no hover */
+        }
+        /* Cor de fundo para dias fora do mês */
+        .outside-month {
+            background-color: #111827;
+            color: #6b7280;
+        }
+        /* Destaque para o dia de hoje no tema escuro */
+        .calendar-day.bg-indigo-50 {
+            background-color: #3730a3 !important; /* Indigo forte */
+            border-color: #6366f1 !important;
+            color: white !important;
+        }
+        
+        /* Estilos para os eventos (mantendo cores claras para contraste) */
+        .event {
+            padding: 4px 6px;
+            margin-top: 4px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600; /* Aumentando a fonte para melhor leitura no escuro */
+            line-height: 1.3;
+            overflow: hidden; 
+            cursor: help;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+        }
+        /* Cores dos eventos (Mantendo o contraste: fundo claro, texto escuro) */
+        .tráfego { background-color: #c0f0e7; color: #027a65; border-left: 3px solid #00b39f; } /* Teal */
+        .pré-vendas { background-color: #ffe0b2; color: #e65100; border-left: 3px solid #ff9800; } /* Laranja */
+        .aulão { background-color: #d1c4e9; color: #4527a0; border-left: 3px solid #673ab7; } /* Violeta */
+        .mentoria { background-color: #f3e5f5; color: #880e4f; border-left: 3px solid #e91e63; } /* Rosa */
+        .lions { background-color: #fff8e1; color: #b79412; border-left: 3px solid #ffeb3b; } /* Amarelo Ouro/Lions */
+        .feiras { background-color: #e3f2fd; color: #1565c0; border-left: 3px solid #2196f3; } /* Azul Claro/Feiras */
+        .planejamento { background-color: #e0e7ff; color: #3730a3; border-left: 3px solid #6366f1; } /* Indigo/Planejamento */
+        .turbo { background-color: #ffccff; color: #8b008b; border-left: 3px solid #ff00ff; } /* Roxo/Fúcsia para Vendedor Turbo */
+
+
+        /* Estilo para o modal no tema escuro */
+        #modal {
+            z-index: 100;
+            background-color: rgba(0, 0, 0, 0.8);
+        }
+        #modal > div {
+            background-color: #1f2937; /* Fundo do modal escuro (gray-800) */
+            color: #e5e7eb; /* Texto claro */
+        }
+        #modal-title {
+            color: #e5e7eb;
+            border-color: #374151;
+        }
+        #modal-date {
+            color: #9ca3af;
+        }
+        /* Removendo a forçação de cor branca para o texto dentro do modal, 
+           permitindo que o 'textColorClass' do JS defina a cor correta */
+        /* .modal-event-item p {
+            color: #e5e7eb !important; 
+        } */ 
+        
+    </style>
+</head>
+<body class="p-4 sm:p-8">
+
+    <!-- Modal de Detalhes do Evento (Escondido por padrão) --><div id="modal" class="fixed inset-0 hidden items-center justify-center">
+        <div class="rounded-xl shadow-2xl p-6 w-11/12 max-w-md transform transition-all duration-300 scale-100">
+            <h3 id="modal-title" class="text-2xl font-bold mb-4 border-b pb-2">Detalhes do Evento</h3>
+            <p id="modal-date" class="text-sm mb-3"></p>
+            <div id="modal-events-list" class="space-y-3">
+                <!-- Eventos serão injetados aqui --></div>
+            <div class="mt-6 text-right">
+                <button onclick="closeModal()" class="px-4 py-2 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition duration-150">
+                    Fechar
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Container Principal do Calendário --><div class="max-w-7xl mx-auto rounded-xl shadow-2xl p-6 sm:p-10 bg-gray-800">
+
+        <!-- Cabeçalho --><div class="flex flex-col items-center mb-6 border-b border-gray-600 pb-4">
+            <!-- LOGO G30 Adicionada no topo e centralizada -->
+            <img 
+                src="https://raw.githubusercontent.com/danfernandes12/calendarg30/537c9a890599b08a7d929042ef4bd0b4d10aaaeb/logog30.png" 
+                alt="Logo G30 Pro" 
+                class="h-40 w-auto mb-4" 
+                onerror="this.onerror=null; this.src='https://placehold.co/64x64/1f2937/6366f1?text=G30';"
+            >
+            <h1 class="text-3xl sm:text-4xl font-extrabold text-white leading-tight mb-2">
+                Programação de Novembro <!-- Título Principal -->
+            </h1>
+            <div class="flex flex-col sm:flex-row justify-center items-center mt-2">
+                <p class="text-xl font-semibold text-indigo-400 mr-2" id="current-month-year">Novembro 2025</p>
+                <p class="text-sm text-gray-400">Agenda Completa de Eventos</p>
+            </div>
+        </div>
+
+        <!-- Dias da Semana --><div id="calendar-weekdays" class="grid grid-cols-7 gap-1 sm:gap-4 font-bold text-sm sm:text-base text-center text-gray-200 mb-3">
+            <!-- Os dias da semana serão injetados aqui pelo JS --></div>
+
+        <!-- Grid do Calendário (Dias) --><div id="calendar-grid" class="grid grid-cols-7 gap-1 sm:gap-4 border border-gray-600 rounded-lg overflow-hidden">
+            <!-- As células do calendário serão injetadas aqui pelo JS --></div>
+
+    </div>
+
+    <script>
+        // Configuração de eventos para o mês de referência (Novembro)
+        const EVENTS = [
+            // Plantão de Tráfego Pago (COM WIRLEY)
+            { day: 4, type: 'tráfego', title: 'Plantão de Tráfego Pago com Wirley', time: '9:00 - 11:00' }, 
+            { day: 12, type: 'tráfego', title: 'Plantão de Tráfego Pago com Wirley', time: '9:00 - 11:00' },
+            { day: 17, type: 'tráfego', title: 'Plantão de Tráfego Pago com Wirley', time: '9:00 - 11:00' },
+            { day: 24, type: 'tráfego', title: 'Plantão de Tráfego Pago com Wirley', time: '9:00 - 11:00' },
+
+            // Fábrica de Pré-Vendas (COM MISAEL CARVALHO)
+            { day: 13, type: 'pré-vendas', title: 'Fábrica de Pré-Vendas com Misael Carvalho', time: '12:00 - 12:30' },
+            { day: 25, type: 'pré-vendas', title: 'Fábrica de Pré-Vendas com Misael Carvalho', time: '12:00 - 12:30' },
+
+            // Aulão G30 (COM DRA. DANIELLE - HORÁRIO ATUALIZADO)
+            { day: 10, type: 'aulão', title: 'Aulão G30 com Dra. Danielle: como blindar a sua loja de clientes mal intencionado', time: '19:30' },
+
+            // Mentoria Imersiva (NOME ORIGINAL - MANUTENÇÃO)
+            { day: 26, type: 'mentoria', title: 'Mentoria imersiva com o Guga', time: '9:00 - 10:00' },
+
+            // Eventos Solicitados (NOME ORIGINAL - MANUTENÇÃO)
+            { day: 18, type: 'lions', title: 'Encontro Lions', time: '9:00 - 19:00' }, 
+            { day: 19, type: 'feiras', title: 'FENAUTO', time: 'Dia Todo' },
+            { day: 20, type: 'feiras', title: 'FENAUTO', time: 'Dia Todo' },
+            { day: 21, type: 'feiras', title: 'FENAUTO', time: 'Dia Todo' },
+            
+            // Planejamento Black Friday (COM DANIEL FERNANDES - HORÁRIO ATUALIZADO)
+            { day: 6, type: 'planejamento', title: 'Planejamento de Black Friday com Daniel Fernandes', time: '10:00 - 11:30' },
+            
+            // NOVO EVENTO: Vendedor Turbo (COM JEFFERSON GOMES)
+            { day: 27, type: 'turbo', title: 'Vendedor Turbo com Jefferson Gomes', time: '9:00 - 10:00' },
+        ];
+
+        // Definindo o mês e ano para o calendário
+        const targetMonth = 10; // Novembro (0-indexado: 0=Jan, 10=Nov)
+        const targetYear = 2025;
+
+        // Nomes dos dias da semana (começando pelo Domingo)
+        const weekdays = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+
+        // Elementos do DOM
+        const calendarGrid = document.getElementById('calendar-grid');
+        const calendarWeekdays = document.getElementById('calendar-weekdays');
+        const modal = document.getElementById('modal');
+        const modalTitle = document.getElementById('modal-title');
+        const modalDate = document.getElementById('modal-date');
+        const modalEventsList = document.getElementById('modal-events-list');
+
+        function renderWeekdays() {
+            calendarWeekdays.innerHTML = weekdays.map(day => 
+                // Usando bg-gray-700 e text-gray-200 para os dias da semana
+                `<div class="p-2 sm:p-3 text-center bg-gray-700 rounded-md">${day}</div>`
+            ).join('');
+        }
+
+        function renderCalendar() {
+            // 1. Encontra o primeiro dia do mês
+            const firstDayOfMonth = new Date(targetYear, targetMonth, 1);
+            // 0=Domingo, 6=Sábado. Quantos dias do mês anterior exibir.
+            const startDayIndex = firstDayOfMonth.getDay(); 
+            
+            // 2. Encontra o número total de dias no mês
+            const daysInMonth = new Date(targetYear, targetMonth + 1, 0).getDate();
+
+            // 3. Encontra o último dia do mês anterior para preenchimento
+            const daysInPrevMonth = new Date(targetYear, targetMonth, 0).getDate();
+
+            calendarGrid.innerHTML = '';
+            
+            let dayCounter = 1;
+            let currentDay = new Date().getDate();
+            let currentMonth = new Date().getMonth();
+            let currentYear = new Date().getFullYear();
+
+            // Loop para criar as células do calendário (total de 6 semanas * 7 dias = 42 células)
+            for (let i = 0; i < 42; i++) {
+                const dayCell = document.createElement('div');
+                dayCell.classList.add(
+                    'calendar-day', 
+                    'rounded-lg', 
+                    'shadow-md', 
+                    'flex', 
+                    'flex-col', 
+                );
+
+                let dayNumber;
+                let isCurrentMonth = false;
+                
+                // Preencher com dias do mês anterior
+                if (i < startDayIndex) {
+                    dayNumber = daysInPrevMonth - startDayIndex + i + 1;
+                    dayCell.classList.add('outside-month');
+                } 
+                // Preencher com dias do mês atual
+                else if (dayCounter <= daysInMonth) {
+                    dayNumber = dayCounter++;
+                    isCurrentMonth = true;
+                    dayCell.setAttribute('data-day', dayNumber);
+
+                    // Adicionar destaque para o dia de hoje (se for o mês/ano atual)
+                    if (dayNumber === currentDay && targetMonth === currentMonth && targetYear === currentYear) {
+                         // Usando as classes customizadas para o tema escuro
+                         dayCell.classList.add('bg-indigo-50'); 
+                    }
+                } 
+                // Preencher com dias do próximo mês
+                else {
+                    dayNumber = dayCounter++ - daysInMonth;
+                    dayCell.classList.add('outside-month');
+                }
+
+                // Adicionar o número do dia
+                const dayHeader = document.createElement('div');
+                // Usando text-gray-200 para contraste no tema escuro
+                dayHeader.classList.add('text-lg', 'font-semibold', 'mb-1', 'text-gray-200');
+                dayHeader.textContent = dayNumber;
+                dayCell.appendChild(dayHeader);
+
+                // Injetar eventos se for o mês atual
+                if (isCurrentMonth) {
+                    const dayEvents = EVENTS.filter(event => event.day === dayNumber);
+                    
+                    if (dayEvents.length > 0) {
+                        // Adicionar um evento por célula (máximo 3 visíveis)
+                        dayEvents.slice(0, 3).forEach(event => {
+                            const eventDiv = document.createElement('div');
+                            eventDiv.classList.add('event', event.type);
+                            // Agora o texto pode quebrar linhas (wrap) para exibir o conteúdo completo
+                            eventDiv.textContent = `${event.time} - ${event.title}`; 
+                            eventDiv.setAttribute('title', `${event.title} (${event.time})`);
+                            dayCell.appendChild(eventDiv);
+                        });
+
+                        // Adicionar contador de eventos se houver mais de 3
+                        if (dayEvents.length > 3) {
+                            const moreEventsDiv = document.createElement('div');
+                            // Usando text-indigo-400 para destaque no tema escuro
+                            moreEventsDiv.classList.add('text-xs', 'text-indigo-400', 'mt-1', 'font-medium', 'cursor-pointer', 'hover:text-indigo-300');
+                            moreEventsDiv.textContent = `+ ${dayEvents.length - 3} mais`;
+                            dayCell.appendChild(moreEventsDiv);
+                        }
+
+                        // Configurar o clique para abrir o modal de detalhes
+                        dayCell.addEventListener('click', () => openModal(dayNumber, dayEvents));
+                    }
+                }
+
+                calendarGrid.appendChild(dayCell);
+            }
+        }
+
+        // Função para abrir o modal
+        function openModal(dayNumber, events) {
+            modalTitle.textContent = `Eventos do Dia ${dayNumber}`;
+            modalDate.textContent = `${weekdays[new Date(targetYear, targetMonth, dayNumber).getDay()]}, ${dayNumber} de Novembro de 2025`;
+            modalEventsList.innerHTML = ''; // Limpa a lista anterior
+
+            events.forEach(event => {
+                const eventItem = document.createElement('div');
+                // Adicionando classe para estilizar o item no modal
+                eventItem.classList.add('p-3', 'rounded-lg', 'shadow-sm', 'border', 'modal-event-item');
+
+                // Determina a cor do item no modal (mantendo as cores claras nos cards internos)
+                // A cor do texto será sempre preta (ou um cinza escuro) aqui, conforme solicitado
+                let bgColor, borderColor;
+                const textColorClass = 'text-gray-900'; // Define a cor do texto como preto/cinza muito escuro
+
+                switch (event.type) {
+                    case 'tráfego':
+                        bgColor = 'bg-teal-100';
+                        borderColor = 'border-teal-500';
+                        break;
+                    case 'pré-vendas':
+                        bgColor = 'bg-orange-100';
+                        borderColor = 'border-orange-500';
+                        break;
+                    case 'aulão':
+                        bgColor = 'bg-violet-100';
+                        borderColor = 'border-violet-500';
+                        break;
+                    case 'mentoria':
+                        bgColor = 'bg-pink-100';
+                        borderColor = 'border-pink-500';
+                        break;
+                    case 'lions':
+                        bgColor = 'bg-amber-100';
+                        borderColor = 'border-amber-500';
+                        break;
+                    case 'feiras':
+                        bgColor = 'bg-blue-100';
+                        borderColor = 'border-blue-500';
+                        break;
+                    case 'planejamento':
+                        bgColor = 'bg-indigo-100';
+                        borderColor = 'border-indigo-500';
+                        break;
+                    case 'turbo': // NOVO TIPO DE EVENTO
+                        bgColor = 'bg-purple-100';
+                        borderColor = 'border-purple-500';
+                        break;
+                    default:
+                        bgColor = 'bg-gray-100';
+                        borderColor = 'border-gray-300';
+                        break;
+                }
+                eventItem.classList.add(bgColor, borderColor);
+
+                // Aplicando a classe de cor escura no texto
+                eventItem.innerHTML = `
+                    <p class="font-bold ${textColorClass}">${event.title}</p>
+                    <p class="text-sm font-medium ${textColorClass}">
+                        ${event.time}
+                    </p>
+                `;
+                modalEventsList.appendChild(eventItem);
+            });
+
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        // Função para fechar o modal
+        function closeModal() {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        // Inicializar o calendário
+        window.onload = () => {
+            renderWeekdays();
+            renderCalendar();
+        };
+
+        // Adiciona a função de fechar o modal clicando fora dele
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                closeModal();
+            }
+        });
+
+    </script>
+</body>
+</html>
